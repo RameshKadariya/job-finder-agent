@@ -106,6 +106,7 @@ CRITICAL REQUIREMENTS:
             temperature=0.7,
             max_tokens=1200
         )
+        return response.choices[0].message.content
     except Exception as e:
         print(f"⚠️ AI API Error: {e}")
         return f'''{{
