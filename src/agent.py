@@ -1,6 +1,6 @@
 from groq import Groq
 from dotenv import load_dotenv
-from generate_pdf import generate_cover_letter
+from src.generate_pdf import generate_cover_letter
 import os
 import json
 import shutil
