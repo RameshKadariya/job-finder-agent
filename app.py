@@ -50,9 +50,21 @@ def apply_job():
         job = data.get('job')
         manual_email = data.get('manual_email')
         
-        company = job['company']
-        title = job['title']
+        if not job:
+            return jsonify({
+                'success': False,
+                'error': 'Job data is missing'
+            }), 400
+        
+        company = job.get('company', 'Unknown Company')
+        title = job.get('title', 'Unknown Position')
         description = job.get('description', title)
+        
+        if not company or not title:
+            return jsonify({
+                'success': False,
+                'error': 'Company and title are required'
+            }), 400
         
         print(f"\n📝 APPLY JOB REQUEST:")
         print(f"  Company: {company}")
@@ -61,6 +73,12 @@ def apply_job():
         
         # Select best CV
         cv_raw = select_best_cv(description, company, title)
+        if not cv_raw:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to select CV'
+            }), 500
+        
         cv_data = parse_json(cv_raw)
         selected_cv_key = cv_data.get('selected_cv', 'data_analyst')
         
@@ -71,7 +89,19 @@ def apply_job():
         
         # Generate cover letter
         cl_raw = generate_cover_letter_content(description, company, title)
+        if not cl_raw:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to generate cover letter'
+            }), 500
+        
         cl_data = parse_json(cl_raw)
+        
+        if not cl_data.get('email_body'):
+            return jsonify({
+                'success': False,
+                'error': 'Email body generation failed'
+            }), 500
         
         # Create application folder
         safe_company = company.replace(" ", "_").replace("/", "_")
@@ -124,6 +154,9 @@ def apply_job():
         })
         
     except Exception as e:
+        print(f"  ❌ Exception in apply_job: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -139,9 +172,17 @@ def send_email():
         cv_path = data.get('cv_path')
         cl_path = data.get('cl_path')
         
+        # Validate body is not None
+        if not body:
+            return jsonify({
+                'success': False,
+                'error': 'Email body is empty'
+            }), 400
+        
         # Add greeting and closing if not present
-        if body and not body.strip().startswith('Dear'):
-            body = f"Dear Hiring Manager,\n\n{body.strip()}\n\nSincerely,\nRamesh Kadariya"
+        body_stripped = body.strip()
+        if not body_stripped.startswith('Dear'):
+            body = f"Dear Hiring Manager,\n\n{body_stripped}\n\nSincerely,\nRamesh Kadariya"
         
         print(f"\n📧 SEND EMAIL REQUEST:")
         print(f"  Recipient: {recipient}")
