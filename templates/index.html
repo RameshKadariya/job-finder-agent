@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Application Agent</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 Job Application Agent</h1>
+            <p class="subtitle">Automate your job applications with AI</p>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-number" id="total-apps">0</span>
+                <span class="stat-label">Applications</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="jobs-found">0</span>
+                <span class="stat-label">Jobs Found</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="emails-found">0</span>
+                <span class="stat-label">Emails Found</span>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <h2>🔍 Search Jobs</h2>
+            <div class="search-form">
+                <div class="form-group">
+                    <label>Keywords</label>
+                    <input type="text" id="keywords" placeholder="e.g., Data Analyst, Python Developer">
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="location" placeholder="e.g., Remote, Nepal, USA" value="Remote">
+                </div>
+                <div class="form-group">
+                    <label>Job Type</label>
+                    <select id="job-type">
+                        <option value="">Any</option>
+                        <option value="intern">Intern</option>
+                        <option value="full-time">Full Time</option>
+                        <option value="part-time">Part Time</option>
+                        <option value="remote">Remote</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="searchJobs()">
+                    <span class="btn-text">Search Jobs</span>
+                    <span class="btn-loader" style="display:none;">⏳</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="results-section" id="results-section" style="display:none;">
+            <h2>📋 Job Results</h2>
+            <div id="jobs-container"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="email-modal" style="display:none;">
+        <div class="modal-content">
+            <h3>📧 Enter Email Address</h3>
+            <p>For <strong id="modal-company"></strong></p>
+            <p id="modal-message">Please enter the company email manually:</p>
+            <input type="email" id="manual-email" placeholder="hr@company.com" autofocus>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeEmailModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitManualEmail()">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
