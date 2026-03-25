@@ -2,10 +2,11 @@ import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import HexColor
+from io import BytesIO
 
 
-def generate_cover_letter(output_path, company, role, email_body):
-    """Generate PDF using ReportLab"""
+def generate_cover_letter_pdf(company, role, email_body):
+    """Generate PDF in memory using ReportLab and return bytes"""
     
     email_body = email_body.strip()
     if email_body.startswith("Dear Hiring Manager"):
@@ -30,7 +31,9 @@ def generate_cover_letter(output_path, company, role, email_body):
             continue
         clean_paragraphs.append(para)
     
-    c = canvas.Canvas(output_path, pagesize=A4)
+    # Generate PDF in memory
+    pdf_buffer = BytesIO()
+    c = canvas.Canvas(pdf_buffer, pagesize=A4)
     width, height = A4
     green = HexColor('#059669')
     light_green = HexColor('#d1fae5')
@@ -120,4 +123,13 @@ def generate_cover_letter(output_path, company, role, email_body):
     c.drawString((width - text_width) / 2, 15, footer_text)
     
     c.save()
+    pdf_buffer.seek(0)
+    return pdf_buffer.getvalue()
+
+
+def generate_cover_letter(output_path, company, role, email_body):
+    """Generate PDF and save to file (for local use)"""
+    pdf_bytes = generate_cover_letter_pdf(company, role, email_body)
+    with open(output_path, 'wb') as f:
+        f.write(pdf_bytes)
     print(f"✅ Cover Letter saved: {output_path}")

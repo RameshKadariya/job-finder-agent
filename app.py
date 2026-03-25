@@ -3,8 +3,8 @@ from flask_cors import CORS
 from src.job_search import search_all_jobs
 from src.email_finder import find_company_email
 from src.agent import select_best_cv, generate_cover_letter_content, parse_json, CV_VERSIONS
-from src.generate_pdf import generate_cover_letter
-from src.gmail_sender import send_application_email
+from src.generate_pdf import generate_cover_letter_pdf
+from src.gmail_sender import send_application_email_with_bytes
 import os
 import shutil
 from datetime import datetime
@@ -103,30 +103,10 @@ def apply_job():
                 'error': 'Email body generation failed'
             }), 500
         
-        # Create application folder (for local storage only)
-        safe_company = company.replace(" ", "_").replace("/", "_")
-        safe_role = title.replace(" ", "_").replace("/", "_")
-        folder = f"applications/{safe_company}"
+        email_subject = cl_data.get('email_subject', f'Application for {title} - Ramesh Kadariya')
         
-        try:
-            os.makedirs(folder, exist_ok=True)
-            
-            # Copy CV
-            cv_output = f"{folder}/CV_{safe_role}.pdf"
-            shutil.copy2(cv_path, cv_output)
-            
-            # Generate cover letter PDF
-            cl_output = f"{folder}/CoverLetter_{safe_role}.pdf"
-            generate_cover_letter(
-                output_path=cl_output,
-                company=company,
-                role=title,
-                email_body=cl_data["cover_letter_content"]
-            )
-        except Exception as e:
-            print(f"  ⚠️ Warning: Could not save files locally: {e}")
-            cv_output = None
-            cl_output = None
+        # Generate cover letter PDF in memory
+        cl_pdf_bytes = generate_cover_letter_pdf(company, title, cl_data["cover_letter_content"])
         
         # Get email
         emails = job.get('emails_in_post', [])
@@ -135,31 +115,18 @@ def apply_job():
         elif not emails:
             emails = find_company_email(company, job.get('company_url'))
         
-        # Save email draft (for local storage only)
-        try:
-            email_subject = cl_data.get('email_subject', f'Application for {title} - Ramesh Kadariya')
-            email_content = f"To: {emails[0] if emails else '[Email not found]'}\n"
-            email_content += f"Subject: {email_subject}\n\n"
-            email_content += cl_data["email_body"]
-            
-            with open(f"{folder}/email_draft.txt", "w", encoding="utf-8") as f:
-                f.write(email_content)
-        except Exception as e:
-            print(f"  ⚠️ Warning: Could not save email draft: {e}")
-        
         # Log the generated email body
         print(f"  Generated email body preview: {cl_data['email_body'][:150]}...")
         
         return jsonify({
             'success': True,
             'message': 'Application created successfully',
-            'folder': folder,
             'emails': emails,
             'cv_type': selected_cv_key.replace('_', ' ').title(),
-            'cv_path': cv_output,
-            'cl_path': cl_output,
             'email_subject': email_subject,
-            'email_body': cl_data["email_body"]
+            'email_body': cl_data["email_body"],
+            'cv_bytes': None,  # Will be handled in send_email
+            'cl_bytes': None   # Will be handled in send_email
         })
         
     except Exception as e:
@@ -179,7 +146,6 @@ def send_email():
         subject = data.get('subject')
         body = data.get('body')
         cv_path = data.get('cv_path')
-        cl_path = data.get('cl_path')
         
         # Validate inputs
         if not recipient:
@@ -208,12 +174,26 @@ def send_email():
         print(f"\n📧 SEND EMAIL REQUEST:")
         print(f"  Recipient: {recipient}")
         print(f"  Subject: {subject}")
-        print(f"  CV Path: {cv_path}")
-        print(f"  CL Path: {cl_path}")
         print(f"  Body length: {len(body) if body else 0} chars")
         
-        # Send email
-        success = send_application_email(recipient, subject, body, cv_path, cl_path)
+        # Read CV file if it exists
+        cv_bytes = None
+        if cv_path and os.path.exists(cv_path):
+            try:
+                with open(cv_path, 'rb') as f:
+                    cv_bytes = f.read()
+                print(f"  ✅ Read CV from disk: {cv_path}")
+            except Exception as e:
+                print(f"  ⚠️ Could not read CV: {e}")
+        
+        # Send email with attachments
+        success = send_application_email_with_bytes(
+            recipient, 
+            subject, 
+            body, 
+            cv_bytes,
+            "CV_Application.pdf"
+        )
         
         if success:
             return jsonify({
