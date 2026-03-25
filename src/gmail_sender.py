@@ -32,45 +32,65 @@ def send_application_email(to_email, subject, body, cv_path, cover_letter_path):
         # Add body
         msg.attach(MIMEText(body, 'plain'))
         
-        # Attach CV
-        if os.path.exists(cv_path):
-            with open(cv_path, 'rb') as f:
-                part = MIMEBase('application', 'octet-stream')
-                part.set_payload(f.read())
-                encoders.encode_base64(part)
-                part.add_header('Content-Disposition', f'attachment; filename={os.path.basename(cv_path)}')
-                msg.attach(part)
+        # Attach CV if it exists
+        if cv_path and os.path.exists(cv_path):
+            try:
+                with open(cv_path, 'rb') as f:
+                    part = MIMEBase('application', 'octet-stream')
+                    part.set_payload(f.read())
+                    encoders.encode_base64(part)
+                    part.add_header('Content-Disposition', f'attachment; filename={os.path.basename(cv_path)}')
+                    msg.attach(part)
+                    print(f"  ✅ Attached CV: {os.path.basename(cv_path)}")
+            except Exception as e:
+                print(f"  ⚠️ Could not attach CV: {e}")
+        else:
+            print(f"  ⚠️ CV file not found: {cv_path}")
         
-        # Attach Cover Letter
-        if os.path.exists(cover_letter_path):
-            with open(cover_letter_path, 'rb') as f:
-                part = MIMEBase('application', 'octet-stream')
-                part.set_payload(f.read())
-                encoders.encode_base64(part)
-                part.add_header('Content-Disposition', f'attachment; filename={os.path.basename(cover_letter_path)}')
-                msg.attach(part)
+        # Attach Cover Letter if it exists
+        if cover_letter_path and os.path.exists(cover_letter_path):
+            try:
+                with open(cover_letter_path, 'rb') as f:
+                    part = MIMEBase('application', 'octet-stream')
+                    part.set_payload(f.read())
+                    encoders.encode_base64(part)
+                    part.add_header('Content-Disposition', f'attachment; filename={os.path.basename(cover_letter_path)}')
+                    msg.attach(part)
+                    print(f"  ✅ Attached Cover Letter: {os.path.basename(cover_letter_path)}")
+            except Exception as e:
+                print(f"  ⚠️ Could not attach Cover Letter: {e}")
+        else:
+            print(f"  ⚠️ Cover Letter file not found: {cover_letter_path}")
         
         # Connect to Gmail SMTP
+        print(f"  📧 Connecting to Gmail SMTP...")
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(gmail_user, gmail_password)
         
         # Send email
+        print(f"  📤 Sending email to {to_email}...")
         server.send_message(msg)
         server.quit()
         
-        print(f"✅ Email sent to: {to_email}")
+        print(f"✅ Email sent successfully to: {to_email}")
         return True
         
     except smtplib.SMTPRecipientsRefused as e:
         print(f"❌ SMTP Recipient refused: {e}")
         print(f"   Email address '{to_email}' may be invalid or rejected")
         return False
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"❌ Gmail authentication failed: {e}")
+        print(f"   Check your GMAIL_USER and GMAIL_APP_PASSWORD in .env")
+        return False
     except smtplib.SMTPException as e:
         print(f"❌ SMTP error: {e}")
         return False
     except Exception as e:
         print(f"❌ Failed to send email: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 

@@ -181,7 +181,19 @@ def send_email():
         cv_path = data.get('cv_path')
         cl_path = data.get('cl_path')
         
-        # Validate body is not None
+        # Validate inputs
+        if not recipient:
+            return jsonify({
+                'success': False,
+                'error': 'Recipient email is required'
+            }), 400
+        
+        if not subject:
+            return jsonify({
+                'success': False,
+                'error': 'Email subject is required'
+            }), 400
+        
         if not body:
             return jsonify({
                 'success': False,
@@ -199,24 +211,20 @@ def send_email():
         print(f"  CV Path: {cv_path}")
         print(f"  CL Path: {cl_path}")
         print(f"  Body length: {len(body) if body else 0} chars")
-        if body:
-            # Show first 200 chars of email body
-            preview = body[:200] + ("..." if len(body) > 200 else "")
-            print(f"  Body preview: {preview}")
         
-        # Check if files exist
-        import os
-        if cv_path and not os.path.exists(cv_path):
-            print(f"  ❌ CV file does not exist: {cv_path}")
-        if cl_path and not os.path.exists(cl_path):
-            print(f"  ❌ Cover letter file does not exist: {cl_path}")
-        
+        # Send email
         success = send_application_email(recipient, subject, body, cv_path, cl_path)
         
-        return jsonify({
-            'success': success,
-            'message': 'Email sent successfully' if success else 'Failed to send email'
-        })
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Email sent successfully'
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to send email. Check server logs for details.'
+            }), 500
         
     except Exception as e:
         print(f"  ❌ Exception in send_email: {e}")
@@ -224,7 +232,7 @@ def send_email():
         traceback.print_exc()
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'Server error: {str(e)}'
         }), 500
 
 @app.route('/api/stats', methods=['GET'])
