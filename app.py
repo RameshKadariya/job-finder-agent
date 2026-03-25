@@ -103,24 +103,30 @@ def apply_job():
                 'error': 'Email body generation failed'
             }), 500
         
-        # Create application folder
+        # Create application folder (for local storage only)
         safe_company = company.replace(" ", "_").replace("/", "_")
         safe_role = title.replace(" ", "_").replace("/", "_")
         folder = f"applications/{safe_company}"
-        os.makedirs(folder, exist_ok=True)
         
-        # Copy CV
-        cv_output = f"{folder}/CV_{safe_role}.pdf"
-        shutil.copy2(cv_path, cv_output)
-        
-        # Generate cover letter PDF
-        cl_output = f"{folder}/CoverLetter_{safe_role}.pdf"
-        generate_cover_letter(
-            output_path=cl_output,
-            company=company,
-            role=title,
-            email_body=cl_data["cover_letter_content"]
-        )
+        try:
+            os.makedirs(folder, exist_ok=True)
+            
+            # Copy CV
+            cv_output = f"{folder}/CV_{safe_role}.pdf"
+            shutil.copy2(cv_path, cv_output)
+            
+            # Generate cover letter PDF
+            cl_output = f"{folder}/CoverLetter_{safe_role}.pdf"
+            generate_cover_letter(
+                output_path=cl_output,
+                company=company,
+                role=title,
+                email_body=cl_data["cover_letter_content"]
+            )
+        except Exception as e:
+            print(f"  ⚠️ Warning: Could not save files locally: {e}")
+            cv_output = None
+            cl_output = None
         
         # Get email
         emails = job.get('emails_in_post', [])
@@ -129,14 +135,17 @@ def apply_job():
         elif not emails:
             emails = find_company_email(company, job.get('company_url'))
         
-        # Save email draft
-        email_subject = cl_data.get('email_subject', f'Application for {title} - Ramesh Kadariya')
-        email_content = f"To: {emails[0] if emails else '[Email not found]'}\n"
-        email_content += f"Subject: {email_subject}\n\n"
-        email_content += cl_data["email_body"]
-        
-        with open(f"{folder}/email_draft.txt", "w", encoding="utf-8") as f:
-            f.write(email_content)
+        # Save email draft (for local storage only)
+        try:
+            email_subject = cl_data.get('email_subject', f'Application for {title} - Ramesh Kadariya')
+            email_content = f"To: {emails[0] if emails else '[Email not found]'}\n"
+            email_content += f"Subject: {email_subject}\n\n"
+            email_content += cl_data["email_body"]
+            
+            with open(f"{folder}/email_draft.txt", "w", encoding="utf-8") as f:
+                f.write(email_content)
+        except Exception as e:
+            print(f"  ⚠️ Warning: Could not save email draft: {e}")
         
         # Log the generated email body
         print(f"  Generated email body preview: {cl_data['email_body'][:150]}...")
